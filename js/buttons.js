@@ -5,7 +5,7 @@ var buttonsList = [
     ".titles .product"
 ]
 
-function buttonInitHoverSfx () {
+function initButtonClick () {
     // Look for all the buttons on any page.
     buttonsList.forEach(buttonName => {
         if (document.querySelectorAll(buttonName).length > 0) {
@@ -20,7 +20,11 @@ function buttonInitHoverSfx () {
                 }
 
                 // Shop buttons
-                if (buttonName === ".buttonlikeshop" || buttonName === ".buttonlikeshop2") {
+                if (
+                    buttonName === ".buttonlikeshop"
+                    || buttonName === ".buttonlikeshop2"
+                    || buttonName === '.titles .product'
+                ) {
                     if (!elmnt.parentElement.classList.contains('bottom')) {
                         elmnt.addEventListener('click', (event) => {
                             playSFX('button-select-big.mp3', userConfig.sfxVol);

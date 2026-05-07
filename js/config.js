@@ -104,7 +104,7 @@ function resetDefaultChannels(confirm) {
         defaultChannels = JSON.parse(localStorage.getItem('onliine-default-channels'));
         console.log(`default channels reset! (reload page to see):`, defaultChannels);
     } else {
-        console.error(`resetDefaultChannels: MAKE SURE YOU'D LIKE TO DO THIS BY USING ADDING "true" IN THE FUNCTION. THERE'S NO TURNING BACK!!`)
+        console.warn(`resetDefaultChannels: MAKE SURE YOU'D LIKE TO DO THIS BY USING ADDING "true" IN THE FUNCTION. THERE'S NO TURNING BACK!!`)
     }
 }
 
@@ -116,7 +116,7 @@ function resetUserChannels(confirm) {
         userChannels = JSON.parse(localStorage.getItem('onliine-channels'));
         console.log(`user channels reset! (reload page to see):`, userChannels);
     } else {
-        console.error(`resetUserChannels: MAKE SURE YOU'D LIKE TO DO THIS BY USING ADDING "true" IN THE FUNCTION. THERE'S NO TURNING BACK!!`)
+        console.warn(`resetUserChannels: MAKE SURE YOU'D LIKE TO DO THIS BY USING ADDING "true" IN THE FUNCTION. THERE'S NO TURNING BACK!!`)
     }
 }
 
@@ -128,7 +128,7 @@ function resetIgnoredChannels(confirm) {
         ignoredDefaultChannels = JSON.parse(localStorage.getItem('onliine-igrore-default-channels'));
         console.log(`ignored channels reset! (reload page to see):`, ignoredDefaultChannels);
     } else {
-        console.error(`resetIgnoredChannels: MAKE SURE YOU'D LIKE TO DO THIS BY USING ADDING "true" IN THE FUNCTION. THERE'S NO TURNING BACK!!`)
+        console.warn(`resetIgnoredChannels: MAKE SURE YOU'D LIKE TO DO THIS BY USING ADDING "true" IN THE FUNCTION. THERE'S NO TURNING BACK!!`)
     }
 }
 
@@ -141,7 +141,7 @@ function resetConfig(confirm) {
 
         console.log(`channel configs reset!:`, channelConfigs);
     } else {
-        console.error(`resetConfig: MAKE SURE YOU'D LIKE TO DO THIS BY USING "loadDefaultConfig(true)". THERE'S NO TURNING BACK!!`)
+        console.warn(`resetConfig: MAKE SURE YOU'D LIKE TO DO THIS BY USING "loadDefaultConfig(true)". THERE'S NO TURNING BACK!!`)
     }
 }
 
@@ -153,10 +153,11 @@ function editChannelConfig(key, value) {
             channelConfigs[channelID] = {};
         }
         channelConfigs[channelID][key] = value;
-        console.log(channelConfigs[key]);
+        // debug obv
+        // console.log(channelConfigs[channelID][key]);
         localStorage.setItem("onliine-channel-configs", JSON.stringify(channelConfigs));
     } else {
-        alert('There is not "channelID" varaible set. Please add one before trying to edit the channel config!')
+        alert('There is not a "channelID" varaible set. Please add one before trying to edit the channel config!')
     }
 }
 
@@ -168,6 +169,15 @@ function getChannelConfigKey(key) {
         }
         return channelConfigs[channelID][key];
     } else {
-        alert('There is not "channelID" varaible set. Please add one before trying to get the channel config!')
+        alert('There is not a "channelID" varaible set. Please add one before trying to get the channel config!')
+    }
+}
+
+// Get the channel config
+function getChannelConfig() {
+    if (channelID) {
+        return channelConfigs[channelID];
+    } else {
+        alert('There is not a "channelID" varaible set. Please add one before trying to get the channel config!')
     }
 }

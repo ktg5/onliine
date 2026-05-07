@@ -4,15 +4,26 @@ let settings = [
         desc: 'Always play "Update Day" from Nirvana The Band The Show',
         key: 'alwaysWednesdays',
         option: {
-            type: 'toggle'
+            type: 'toggle',
+            value: false
         },
-        default: false
     }
 ]
 
 
+var channelConfig = {};
 // Change bg music and load
 window.addEventListener('load', () => {
+    // set channel config if not set already
+    settings.forEach((option) => {
+        const currentValue = getChannelConfigKey(option.key);
+        if (!currentValue) editChannelConfig(option.key, option.option.value);
+        channelConfig = getChannelConfig();
+        console.log('channel config:', channelConfig);
+    });
+
+
+    // page stuff
     // Aspect ratio loop
     setInterval(() => {
         let target1 = document.querySelector('#aspectcontainer');
@@ -31,7 +42,7 @@ window.addEventListener('load', () => {
 
     // Init buttons
     setTimeout(() => {
-        buttonInitHoverSfx();
+        initButtonClick();
     }, 100);
 
     // Music
@@ -83,10 +94,34 @@ async function makeItem(category, id) {
     if (!item.assets.includes('http://') && !item.assets.includes('https://')) {
         channelAssets = `../${item.assets}`;
     }
-    let channelIDLocation = channelAssets + item.id;
+    const channelIDLocation = channelAssets + item.id;
 
+    // Init item to page
+    const titles = document.querySelector('.titles');
+    const titleDiv = document.createElement('div');
+    titleDiv.classList.add('product');
+    titleDiv.setAttribute('data-id', item.id);
+    titleDiv.setAttribute('page', `item?id=${item.id}`);
+    titles.insertAdjacentElement('beforeend', titleDiv);
     // Fetch for possible thumbnails
-    let channelThumb;
+    const channelThumb = await getTitleThumb(channelIDLocation);
+    // Add details to page
+    titleDiv.innerHTML = `
+<div class="preview" style="background: url('${channelIDLocation}/${channelThumb}');"></div>
+<div class="info">
+    <span class="title">${item.title}</span>
+    <div class="spacer"></div>
+    <div class="below">
+        <span class="publisher">${item.publisher}</span>
+        <span class="category">${categoryName}</span>
+    </div>
+</div>
+    `;
+    productDiv = document.querySelector(`.product#${id}`);
+}
+
+
+function getTitleThumb(channelIDLocation) {
     let possibleThumbs = [
         'thumb.png',
         'thumb.jpg',
@@ -94,45 +129,26 @@ async function makeItem(category, id) {
         'thumb.gif',
         'thunb.webp',
         'video.gif',
+        'video.webp',
     ]
     let foundThumb = false;
-    let titles = document.querySelector('.titles');
-    possibleThumbs.forEach(async thumb => {
-        if (foundThumb === true) {
-            return;
-        } else {
-            var http = new XMLHttpRequest();
-            http.open('HEAD', `${channelIDLocation}/${thumb}`, false);
-            http.send();
+    return new Promise((res, rej) => {
+        possibleThumbs.forEach(async thumb => {
+            if (foundThumb === true) {
+                return;
+            } else {
+                var http = new XMLHttpRequest();
+                http.open('HEAD', `${channelIDLocation}/${thumb}`, false);
+                http.send();
 
-            if (http.status == 200) {
-                console.log(`Found thumbnail: ${thumb}`);
-                channelThumb = thumb;
-
-                // Add item to page
-                titles.insertAdjacentHTML('beforeend', `
-                    <div class="product" id="${item.id}">
-                        <div class="preview" style="background: url('${channelIDLocation}/${channelThumb}');"></div>
-                        <div class="info">
-                            <span class="title">${item.title}</span>
-                            <div class="spacer"></div>
-                            <div class="below">
-                                <span class="publisher">${item.publisher}</span>
-                                <span class="category">${categoryName}</span>
-                            </div>
-                        </div>
-                    </div>
-                `);
-                productDiv = document.querySelector(`.product#${id}`);
-                foundThumb = true;
+                if (http.status == 200) {
+                    // debug obv
+                    // console.log(`Found thumbnail: ${thumb}`);
+                    res(thumb);
+                    foundThumb = true;
+                }
             }
-        }
-    });
-
-
-    // Init button click
-    productDiv.addEventListener('click', () => {
-        changePage('item', shopItems[category].find(item => item.id === id));
+        });
     });
 }
 
@@ -149,6 +165,7 @@ function checkItems() {
 }
 
 
+prevHtmlName = '';
 /**
  * Function to change the page content based on the provided htmlName.
  *
@@ -161,6 +178,7 @@ function changePage(htmlName, args) {
     let backButton = document.querySelector('.bottom .back');
     let htmlNameBack;
 
+
     // Make htmlNameBack
     if (htmlName.split('/').length > 1) {
         htmlNameBack = htmlName.split('/')[0];
@@ -171,47 +189,106 @@ function changePage(htmlName, args) {
     target.setAttribute('from-html', `pages/${htmlName}.html`);
 
     // Check if "htmlName" is "index"
-    if (htmlName === 'index') {
-        backButton.onclick = () => {
-            playSFX('button-cancel.mp3', userConfig.sfxVol);
-            window.location.href = '/?skipwarn=true';
-        };
-        backButton.innerHTML = 'Wii Menu';
+    switch (true) {
+        case htmlName.startsWith('index'):
+            backButton.onclick = () => {
+                playSFX('button-cancel.mp3', userConfig.sfxVol);
+                window.location.href = '/?skipwarn=true';
+            };
+            backButton.innerHTML = 'Wii Menu';
 
-        let headerElmnt = document.querySelector('.header');
-        headerElmnt.style.color = "#37bef4";
-        headerElmnt.innerHTML = 'Wii Shop Channel';
-    } else {
-        backButton.onclick = () => {
-            playSFX('button-cancel.mp3', userConfig.sfxVol);
-            changePage('index');
-        };
-        backButton.innerHTML = 'Back';
+            let headerElmnt = document.querySelector('.header');
+            headerElmnt.style.color = "#37bef4";
+            headerElmnt.innerHTML = 'Wii Shop Channel';
+        break;
+
+        case htmlName.startsWith('item'):
+            targetPage = prevHtmlName;
+            backButton.onclick = () => {
+                playSFX('button-cancel.mp3', userConfig.sfxVol);
+                changePage(targetPage);
+            };
+        break;
+    
+        default:
+            backButton.onclick = () => {
+                playSFX('button-cancel.mp3', userConfig.sfxVol);
+                changePage('index');
+            };
+            backButton.innerHTML = 'Back';
+        break;
     }
 
     // Init
     includeHTML();
     /// When everything is loaded
-    setTimeout(() => {
+    setTimeout(async () => {
         // Init store buttons if detected
-        let titles = document.querySelector('.titles');
+        const titles = document.querySelector('.titles');
         if (titles) {
-            if (titles.getAttribute('category') == 'downloaded') {
-                if (userChannels.length > 0) {
-                    userChannels.forEach(channel => {
+            const currentCategory = titles.getAttribute('category');
+            switch (currentCategory) {
+                case 'downloaded':
+                    if (userChannels.length > 0) {
+                        userChannels.forEach(channel => {
+                            makeItem(titles.getAttribute('category'), channel.id);
+                        });
+                    }
+                break;
+
+                case 'settings':
+                    initSettings();
+                break;
+            
+                default:
+                    shopItems[titles.getAttribute('category')].forEach(channel => {
                         makeItem(titles.getAttribute('category'), channel.id);
                     });
-                }
-            } else if (titles.getAttribute('category') == 'settings') {
-                initSettings();
-            } else {
-                shopItems[titles.getAttribute('category')].forEach(channel => {
-                    makeItem(titles.getAttribute('category'), channel.id);
-                });
+                break;
             }
         }
+
+        // Init item page if on it
+        const contentFrame = document.querySelector('.item-container');
+        if (contentFrame) {
+            // get channel data from location args
+            const url = new URLSearchParams(htmlName);
+            const itemId = url.get('item?id');
+            if (!itemId) alert(`A item ID was not provided as a search param when using the "item" page.`);
+
+            // find item in db
+            let item;
+            for (const [tableName, table] of Object.entries(shopItems)) {
+                const found = table.find(obj => obj.id === itemId);
+
+                if (found) {
+                    item = found;
+                    break;
+                }
+            }
+            if (!item) return alert(`The item under the ID of "${itemId}" was not found in the "shopitems.js" file!`);
+
+            // make html with data
+            let channelAssets;
+            if (!item.assets.includes('http://') && !item.assets.includes('https://')) {
+                channelAssets = `../${item.assets}`;
+            }
+            const channelIDLocation = channelAssets + item.id;
+            const channelThumb = await getTitleThumb(channelIDLocation);
+            console.log(`${channelIDLocation}/${channelThumb}`);
+            document.querySelector('.thumb').style.background = `url('${channelIDLocation}/${channelThumb}')`;
+            document.querySelector('.author').textContent = item.publisher;
+            document.querySelector('.title').textContent = item.title;
+
+            // show
+            document.querySelector('.item-container').style.display = '';
+        }
+
+
         // Hover SFX
-        buttonInitHoverSfx();
+        initButtonClick();
+
+
         // Check for rename header
         let renameElmnt = document.querySelector('.rename-header');
         let headerElmnt = document.querySelector('.header');
@@ -228,13 +305,38 @@ function changePage(htmlName, args) {
         
         settings.forEach(setting => {
             titles.insertAdjacentHTML('beforeend', `
-                <div class="product setting" id="${setting.key}">
-                    <div class="preview" style="background: url('assets/${setting.key}.png');"></div>
-                    <div class="info">
-                        <span class="title">${setting.title}</span>
-                    </div>
-                </div>
+<div class="product setting" data-id="${setting.key}" data-type="${setting.option.type}">
+    <div class="preview" style="background: url('assets/${setting.key}.png');"></div>
+    <div class="info">
+        <span class="title">${setting.title}</span>
+        <div class="spacer"></div>
+        <div class="below">
+            <span class="publisher">${setting.desc}</span>
+            <span class="category">Value: <kbd>${channelConfig[setting.key]}</kbd></span>
+        </div>
+    </div>
+</div>
             `);
+
+            const settingDiv = document.querySelector(`.setting[data-id="${setting.key}"]`);
+            if (settingDiv) {
+                switch (setting.option.type) {
+                    case 'toggle':
+                        settingDiv.addEventListener('click', () => {
+                            const newValue = !channelConfig[setting.key];
+                            editChannelConfig(setting.key, newValue);
+                            settingDiv.querySelector('.below .category kbd').textContent = newValue;
+                        });
+                    break;
+                
+                    default:
+                        alert(`the setting under "${setting.key}" does not have a "option.type"! fix that now!!!!!!!`);
+                    break;
+                }
+            } else alert('something happened');
         });
     }
+
+
+    prevHtmlName = htmlName;
 }
